@@ -14,8 +14,9 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
   String petName = "Your Pet";
   int happinessLevel = 50;
   int hungerLevel = 50;
+  int energyLevel = 50;
   final TextEditingController _petNameController = TextEditingController();
-  Timer? _hungerTimer; // Timer for automatic hunger increase
+  Timer? _hungerTimer;
   Timer? _winTimer;
   bool _gameWon = false;
   bool _gameLost = false;
@@ -24,13 +25,12 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
   @override
   void initState() {
     super.initState();
-    _startHungerTimer(); // Start the automatic hunger timer
+    _startHungerTimer();
   }
 
   // Start the timer for automatic hunger increase
   void _startHungerTimer() {
     _hungerTimer = Timer.periodic(Duration(seconds: 10), (timer) {
-      // Changed to 10 seconds for testing
       _automaticHungerIncrease();
     });
   }
@@ -44,14 +44,22 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
         hungerLevel = 100;
       }
 
+      // Decrease energy over time (pets need rest)
+      energyLevel -= 5;
+      if (energyLevel < 0) energyLevel = 0;
+
       // Decrease happiness over time
-      happinessLevel -= 2;
+      happinessLevel -= 5;
 
       // Extra happiness penalty if pet is very hungry
       if (hungerLevel > 70) {
-        happinessLevel -= 5;
+        happinessLevel -= 10;
       }
 
+      // Extra happiness penalty if pet is tired
+      if (energyLevel < 30) {
+        happinessLevel -= 5;
+      }
 
       if (happinessLevel < 0) happinessLevel = 0;
       if (happinessLevel > 100) happinessLevel = 100;
@@ -133,6 +141,66 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
     }
   }
 
+  // Get energy bar color based on energy level
+  Color _getEnergyBarColor() {
+    if (energyLevel >= 70) {
+      return Colors.green;
+    } else if (energyLevel >= 40) {
+      return Colors.orange;
+    } else {
+      return Colors.red;
+    }
+  }
+
+  // Energy Bar Widget
+  Widget _buildEnergyBar() {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 40.0, vertical: 8.0),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Energy Level',
+                style: TextStyle(
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              Text(
+                '$energyLevel/100',
+                style: TextStyle(
+                  fontSize: 14.0,
+                  fontWeight: FontWeight.w500,
+                  color: _getEnergyBarColor(),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 6.0),
+          Container(
+            height: 12.0,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6.0),
+              border: Border.all(color: Colors.grey[400]!, width: 1.0),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(5.0),
+              child: LinearProgressIndicator(
+                value: energyLevel / 100.0,
+                backgroundColor: Colors.grey[200],
+                valueColor: AlwaysStoppedAnimation<Color>(_getEnergyBarColor()),
+                minHeight: 10.0,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Helper function to check and manage win timer
   void _checkWinCondition() {
     if (happinessLevel >= 80 && !_gameWon && !_gameLost) {
@@ -145,28 +213,69 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
   }
 
   void _playWithPet() {
+    // Only play if pet has energy and isn't already at max happiness
+    if (energyLevel <= 10) {
+      return; // Don't play if pet is too tired
+    }
+
+    if (happinessLevel >= 100) {
+      return; // Don't play if pet is already at maximum happiness
+    }
+
     setState(() {
       happinessLevel += 10;
       if (happinessLevel > 100) happinessLevel = 100;
+
+      // Playing uses energy
+      energyLevel -= 1;
+      if (energyLevel < 0) energyLevel = 0;
+
       _updateHunger();
       _checkWinCondition();
     });
   }
 
   void _feedPet() {
+    // Only feed if pet is actually hungry (hunger > 0)
+    if (hungerLevel <= 0) {
+      return; // Don't feed if pet is not hungry
+    }
+
     setState(() {
       hungerLevel -= 10;
       if (hungerLevel < 0) hungerLevel = 0;
+
+      energyLevel += 2;
+      if (energyLevel > 100) energyLevel = 100;
+
       _updateHappiness();
+      _checkWinCondition();
+    });
+  }
+
+  void _restPet() {
+    // Only rest if pet needs rest (energy < 100)
+    if (energyLevel >= 100) {
+      return;
+    }
+
+    setState(() {
+      energyLevel += 15;
+      if (energyLevel > 100) energyLevel = 100;
+
+      // Slight happiness boost from rest only if energy was < 100
+      happinessLevel += 2;
+      if (happinessLevel > 100) happinessLevel = 100;
+
       _checkWinCondition();
     });
   }
 
   void _updateHappiness() {
     if (hungerLevel < 50) {
-      happinessLevel += 4; // Reward for keeping pet well-fed
+      happinessLevel += 2; // Reward for keeping pet well-fed
     } else {
-      happinessLevel += 2; // Small boost for feeding
+      happinessLevel += 1; // Small boost for feeding
     }
 
     if (happinessLevel > 100) happinessLevel = 100;
@@ -197,7 +306,7 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
       hungerLevel += 5;
       if (hungerLevel > 100) {
         hungerLevel = 100;
-        happinessLevel -= 20;
+        happinessLevel -= 10;
       }
     });
   }
@@ -208,6 +317,7 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
       petName = "Your Pet";
       happinessLevel = 50;
       hungerLevel = 50;
+      energyLevel = 50;
       _gameWon = false;
       _gameLost = false;
       _winCountdown = 180;
@@ -238,9 +348,7 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
               // Pet name input section
               Container(
                 padding: EdgeInsets.all(16.0),
-                margin: EdgeInsets.symmetric(
-                  horizontal: 60.0,
-                ),
+                margin: EdgeInsets.symmetric(horizontal: 60.0),
                 decoration: BoxDecoration(
                   color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(12.0),
@@ -390,13 +498,9 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
                     center: Alignment.center,
                     radius: 1,
                     colors: [
-                      _getPetMoodColor().withValues(
-                        alpha: 0.6,
-                      ),
+                      _getPetMoodColor().withValues(alpha: 0.6),
                       _getPetMoodColor().withValues(alpha: 0.3),
-                      _getPetMoodColor().withValues(
-                        alpha: 0.04,
-                      ),
+                      _getPetMoodColor().withValues(alpha: 0.04),
                       Colors.transparent,
                     ],
                     stops: [0.0, 0.4, 0.7, 1.0],
@@ -412,9 +516,7 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
                 ),
                 child: ClipOval(
                   child: Padding(
-                    padding: EdgeInsets.all(
-                      20.0,
-                    ),
+                    padding: EdgeInsets.all(20.0),
                     child: Image.asset(
                       'assets/images/cat.png',
                       fit: BoxFit.cover,
@@ -437,31 +539,77 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
                 'Hunger Level: $hungerLevel',
                 style: TextStyle(fontSize: 20.0, color: _getTextColor()),
               ),
+              SizedBox(height: 16.0),
+              // Energy Bar Widget
+              _buildEnergyBar(),
               SizedBox(height: 32.0),
               ElevatedButton(
-                onPressed: (_gameWon || _gameLost) ? null : _playWithPet,
+                onPressed:
+                    (_gameWon ||
+                        _gameLost ||
+                        energyLevel <= 10 ||
+                        happinessLevel >= 100)
+                    ? null
+                    : _playWithPet,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _getPetMoodColor(),
+                  backgroundColor:
+                      (_gameWon ||
+                          _gameLost ||
+                          energyLevel <= 10 ||
+                          happinessLevel >= 100)
+                      ? Colors.grey[400]
+                      : const Color.fromARGB(255, 143, 210, 244),
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(
                     horizontal: 24.0,
                     vertical: 12.0,
                   ),
                 ),
-                child: Text('Play with Your Pet'),
+                child: Text(
+                  energyLevel <= 10
+                      ? 'Pet Too Tired'
+                      : happinessLevel >= 100
+                      ? 'Pet Max Happy'
+                      : 'Play with Your Pet',
+                ),
               ),
               SizedBox(height: 16.0),
               ElevatedButton(
-                onPressed: (_gameWon || _gameLost) ? null : _feedPet,
+                onPressed: (_gameWon || _gameLost || hungerLevel <= 0)
+                    ? null
+                    : _feedPet,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _getPetMoodColor(),
+                  backgroundColor: (_gameWon || _gameLost || hungerLevel <= 0)
+                      ? Colors.grey[400]
+                      : const Color.fromARGB(255, 143, 210, 244),
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(
                     horizontal: 24.0,
                     vertical: 12.0,
                   ),
                 ),
-                child: Text('Feed Your Pet'),
+                child: Text(
+                  hungerLevel <= 0 ? 'Pet Not Hungry' : 'Feed Your Pet',
+                ),
+              ),
+              SizedBox(height: 16.0),
+              ElevatedButton(
+                onPressed: (_gameWon || _gameLost || energyLevel >= 100)
+                    ? null
+                    : _restPet,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: (_gameWon || _gameLost || energyLevel >= 100)
+                      ? Colors.grey[400]
+                      : const Color.fromARGB(255, 143, 210, 244),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 24.0,
+                    vertical: 12.0,
+                  ),
+                ),
+                child: Text(
+                  energyLevel >= 100 ? 'Pet Well Rested' : 'Rest Your Pet',
+                ),
               ),
 
               // Restart button - only show when game is won or lost
@@ -470,7 +618,7 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
                 ElevatedButton(
                   onPressed: _restartGame,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
+                    backgroundColor: const Color.fromARGB(255, 67, 156, 245),
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(
                       horizontal: 24.0,
