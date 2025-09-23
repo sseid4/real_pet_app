@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 void main() {
   runApp(MaterialApp(home: DigitalPetApp()));
@@ -14,6 +15,44 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
   int happinessLevel = 50;
   int hungerLevel = 50;
   TextEditingController _petNameController = TextEditingController();
+  Timer? _hungerTimer; // Timer for automatic hunger increase
+
+  @override
+  void initState() {
+    super.initState();
+    _startHungerTimer(); // Start the automatic hunger timer
+  }
+
+  // Start the timer for automatic hunger increase
+  void _startHungerTimer() {
+    _hungerTimer = Timer.periodic(Duration(seconds: 10), (timer) {
+      // Changed to 10 seconds for testing
+      _automaticHungerIncrease();
+    });
+  }
+
+  // Automatic hunger increase function
+  void _automaticHungerIncrease() {
+    setState(() {
+      // Increase hunger over time
+      hungerLevel += 5;
+      if (hungerLevel > 100) {
+        hungerLevel = 100;
+      }
+
+      // Decrease happiness over time (pets need attention)
+      happinessLevel -= 2;
+
+      // Extra happiness penalty if pet is very hungry
+      if (hungerLevel > 70) {
+        happinessLevel -= 3; // Additional penalty for being hungry
+      }
+
+      // Clamp happiness to valid range
+      if (happinessLevel < 0) happinessLevel = 0;
+      if (happinessLevel > 100) happinessLevel = 100;
+    });
+  }
 
   // Color changing function based on happiness level
   Color _getPetMoodColor() {
@@ -67,11 +106,13 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
   }
 
   void _updateHappiness() {
-    if (hungerLevel < 30) {
-      happinessLevel -= 20;
+    // Only add happiness when feeding, don't subtract
+    if (hungerLevel < 50) {
+      happinessLevel += 15; // Reward for keeping pet well-fed
     } else {
-      happinessLevel += 10;
+      happinessLevel += 5; // Small boost for feeding
     }
+
     if (happinessLevel > 100) happinessLevel = 100;
     if (happinessLevel < 0) happinessLevel = 0;
   }
@@ -79,6 +120,7 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
   @override
   void dispose() {
     _petNameController.dispose();
+    _hungerTimer?.cancel(); // Cancel the timer to prevent memory leaks
     super.dispose();
   }
 
@@ -117,6 +159,43 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
             // Pet mood indicator
             Container(
               padding: EdgeInsets.all(16.0),
+              margin: EdgeInsets.symmetric(horizontal: 20.0),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12.0),
+                border: Border.all(color: _getPetMoodColor(), width: 0.5),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _petNameController,
+                      decoration: InputDecoration(
+                        hintText: "Enter pet name...",
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12.0),
+                      ),
+                      style: TextStyle(fontSize: 16.0),
+                    ),
+                  ),
+                  SizedBox(width: 4.0),
+                  ElevatedButton(
+                    onPressed: _updatePetName,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[600],
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 4.0,
+                      ),
+                    ),
+                    child: Text('Submit'),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: EdgeInsets.all(16.0),
               decoration: BoxDecoration(
                 color: Colors.grey[100],
                 borderRadius: BorderRadius.circular(12.0),
@@ -132,43 +211,6 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
               ),
             ),
             // Pet name input section
-            Container(
-              padding: EdgeInsets.all(16.0),
-              margin: EdgeInsets.symmetric(horizontal: 20.0),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12.0),
-                border: Border.all(color: _getPetMoodColor(), width: 1.0),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _petNameController,
-                      decoration: InputDecoration(
-                        hintText: "Enter pet name...",
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12.0),
-                      ),
-                      style: TextStyle(fontSize: 16.0),
-                    ),
-                  ),
-                  SizedBox(width: 8.0),
-                  ElevatedButton(
-                    onPressed: _updatePetName,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[600],
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 8.0,
-                      ),
-                    ),
-                    child: Text('Submit'),
-                  ),
-                ],
-              ),
-            ),
             SizedBox(height: 16.0),
             // Pet image with circular gradient background
             Container(
@@ -178,12 +220,12 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
                 shape: BoxShape.circle, // Makes it perfectly round
                 gradient: RadialGradient(
                   center: Alignment.center,
-                  radius: 0.8,
+                  radius: 1,
                   colors: [
                     _getPetMoodColor().withOpacity(0.6), // Center - more opaque
                     _getPetMoodColor().withOpacity(0.3), // Middle
                     _getPetMoodColor().withOpacity(
-                      0.1,
+                      0.05,
                     ), // Edge - more transparent
                     Colors.transparent, // Completely transparent at edge
                   ],
