@@ -14,7 +14,7 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
   String petName = "Your Pet";
   int happinessLevel = 50;
   int hungerLevel = 50;
-  TextEditingController _petNameController = TextEditingController();
+  final TextEditingController _petNameController = TextEditingController();
   Timer? _hungerTimer; // Timer for automatic hunger increase
   Timer? _winTimer;
   bool _gameWon = false;
@@ -44,23 +44,23 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
         hungerLevel = 100;
       }
 
-      // Decrease happiness over time (pets need attention)
+      // Decrease happiness over time
       happinessLevel -= 2;
 
       // Extra happiness penalty if pet is very hungry
       if (hungerLevel > 70) {
-        happinessLevel -= 3; // Additional penalty for being hungry
+        happinessLevel -= 5;
       }
 
-      // Clamp happiness to valid range
+
       if (happinessLevel < 0) happinessLevel = 0;
       if (happinessLevel > 100) happinessLevel = 100;
     });
 
-    // Check win condition - use helper function
+    // Check win condition - helper function
     _checkWinCondition();
 
-    // Check loss condition - ADD THIS PART TOO
+    // Check loss condition - helper function
     _checkLossCondition();
   }
 
@@ -84,7 +84,7 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
 
   void _stopWinTimer() {
     _winTimer?.cancel();
-    _winCountdown = 180; // Reset to 180 instead of 100
+    _winCountdown = 180;
   }
 
   // Check for loss condition
@@ -101,21 +101,21 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
   // Color changing function based on happiness level
   Color _getPetMoodColor() {
     if (happinessLevel >= 80) {
-      return const Color.fromARGB(255, 86, 175, 76); // Very happy - green
+      return const Color.fromARGB(255, 86, 175, 76);
     } else if (happinessLevel >= 60) {
-      return Colors.blue; // Happy - blue
+      return const Color.fromARGB(255, 110, 190, 243);
     } else if (happinessLevel >= 40) {
-      return Colors.orange; // Neutral - orange
+      return const Color.fromARGB(255, 239, 138, 29);
     } else if (happinessLevel >= 20) {
-      return Colors.red; // Sad - red
+      return const Color.fromARGB(255, 255, 17, 0);
     } else {
-      return Colors.grey; // Very sad - grey
+      return Colors.grey;
     }
   }
 
   // Get text color based on mood
   Color _getTextColor() {
-    return _getPetMoodColor().withOpacity(0.8);
+    return _getPetMoodColor().withValues(alpha: 0.8);
   }
 
   // Get mood text based on happiness level
@@ -149,7 +149,7 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
       happinessLevel += 10;
       if (happinessLevel > 100) happinessLevel = 100;
       _updateHunger();
-      _checkWinCondition(); // Use helper function
+      _checkWinCondition();
     });
   }
 
@@ -158,16 +158,15 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
       hungerLevel -= 10;
       if (hungerLevel < 0) hungerLevel = 0;
       _updateHappiness();
-      _checkWinCondition(); // Use helper function
+      _checkWinCondition();
     });
   }
 
   void _updateHappiness() {
-    // Only add happiness when feeding, don't subtract
     if (hungerLevel < 50) {
-      happinessLevel += 15; // Reward for keeping pet well-fed
+      happinessLevel += 4; // Reward for keeping pet well-fed
     } else {
-      happinessLevel += 5; // Small boost for feeding
+      happinessLevel += 2; // Small boost for feeding
     }
 
     if (happinessLevel > 100) happinessLevel = 100;
@@ -177,8 +176,8 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
   @override
   void dispose() {
     _petNameController.dispose();
-    _hungerTimer?.cancel(); // Cancel the timer to prevent memory leaks
-    _winTimer?.cancel(); // Cancel the win timer too
+    _hungerTimer?.cancel();
+    _winTimer?.cancel();
     super.dispose();
   }
 
@@ -229,7 +228,7 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
         backgroundColor: Colors.blue[700],
         foregroundColor: Colors.white,
       ),
-      backgroundColor: Colors.white, // Remove colored background
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(vertical: 20.0),
         child: Center(
@@ -241,7 +240,7 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
                 padding: EdgeInsets.all(16.0),
                 margin: EdgeInsets.symmetric(
                   horizontal: 60.0,
-                ), // Increased from 20.0 to make narrower
+                ),
                 decoration: BoxDecoration(
                   color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(12.0),
@@ -383,28 +382,28 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
               SizedBox(height: 16.0),
               // Pet image with circular gradient background
               Container(
-                width: 240,
-                height: 240,
+                width: 250,
+                height: 250,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle, // Makes it perfectly round
+                  shape: BoxShape.circle,
                   gradient: RadialGradient(
                     center: Alignment.center,
                     radius: 1,
                     colors: [
-                      _getPetMoodColor().withOpacity(
-                        0.6,
-                      ), // Center - more opaque
-                      _getPetMoodColor().withOpacity(0.3), // Middle
-                      _getPetMoodColor().withOpacity(
-                        0.05,
-                      ), // Edge - more transparent
-                      Colors.transparent, // Completely transparent at edge
+                      _getPetMoodColor().withValues(
+                        alpha: 0.6,
+                      ),
+                      _getPetMoodColor().withValues(alpha: 0.3),
+                      _getPetMoodColor().withValues(
+                        alpha: 0.04,
+                      ),
+                      Colors.transparent,
                     ],
-                    stops: [0.0, 0.4, 0.7, 1.0], // Gradient positions
+                    stops: [0.0, 0.4, 0.7, 1.0],
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: _getPetMoodColor().withOpacity(0.3),
+                      color: _getPetMoodColor().withValues(alpha: 0.3),
                       spreadRadius: 4,
                       blurRadius: 12,
                       offset: Offset(0, 6),
@@ -412,11 +411,10 @@ class _DigitalPetAppState extends State<DigitalPetApp> {
                   ],
                 ),
                 child: ClipOval(
-                  // Clips image to circular shape
                   child: Padding(
                     padding: EdgeInsets.all(
                       20.0,
-                    ), // Space between image and edge
+                    ),
                     child: Image.asset(
                       'assets/images/cat.png',
                       fit: BoxFit.cover,
